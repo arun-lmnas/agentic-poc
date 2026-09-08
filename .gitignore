@@ -6,3 +6,4 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+symphony-poc/.env.local

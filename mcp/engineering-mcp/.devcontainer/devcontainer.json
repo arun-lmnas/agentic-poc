@@ -1,0 +1,21 @@
+{
+  "name": "engineering-mcp",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspaces/engineering-mcp",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/engineering-mcp,type=bind",
+  "postCreateCommand": "python -m pip install --upgrade pip && python -m pip install -e '.[dev]'",
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python", "ms-python.ruff"],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.testing.pytestArgs": ["tests"]
+      }
+    }
+  },
+  "remoteUser": "vscode"
+}

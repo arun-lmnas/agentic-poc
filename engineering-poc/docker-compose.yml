@@ -1,0 +1,28 @@
+services:
+  backend:
+    build: ./backend
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  backend-tests:
+    build: ./backend
+    command: ["pytest", "-q"]
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "4173:80"
+
+  ui-tests:
+    build:
+      context: ./frontend
+      dockerfile: tests.Dockerfile
+    depends_on:
+      frontend:
+        condition: service_started

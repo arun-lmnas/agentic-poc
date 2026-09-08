@@ -1,0 +1,17 @@
+name: engineering-mcp
+type: remote
+title: Engineering MCP
+description: Approved application lifecycle and verification tools for the Engineering POC.
+image: ""
+remote:
+  url: http://127.0.0.1:3001/mcp
+  transport_type: streamable-http
+tools:
+  - name: app_status
+    description: Return service health and the latest controlled operation results.
+  - name: app_run
+    description: Start or restart the named backend and frontend application services.
+  - name: app_test
+    description: Run the canonical backend unit-test suite.
+  - name: app_ui_verify
+    description: Run the canonical Playwright browser verification.

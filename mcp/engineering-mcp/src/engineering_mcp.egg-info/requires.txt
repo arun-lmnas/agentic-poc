@@ -1,0 +1,6 @@
+mcp<3,>=2.1.1
+
+[dev]
+pytest<9,>=8
+pytest-anyio>=0.0.0
+ruff>=0.8

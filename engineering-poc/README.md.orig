@@ -1,0 +1,40 @@
+# Engineering POC
+
+This isolated POC experiments with an agentic software-engineering loop around
+a small task-board application. Codex owns code inspection, edits, reasoning,
+and failure interpretation. The companion MCP server owns only fixed
+application lifecycle and verification operations.
+
+## Dev Container
+
+Open `engineering-poc` in VS Code and choose **Dev Containers: Reopen in
+Container**. The container uses Python 3.12, Node 22, Docker, and Playwright.
+Project dependencies are installed by the dev-container `postCreateCommand`,
+not on the host.
+
+## Local App Checks
+
+From inside the dev container:
+
+```bash
+docker compose build
+docker compose up -d backend frontend
+docker compose run --rm backend-tests
+docker compose run --rm ui-tests
+```
+
+The application is available at `http://localhost:4173`.
+
+## MCP Image
+
+Build and run the standalone stdio MCP server independently:
+
+```bash
+docker compose build mcp
+docker compose run --rm mcp
+```
+
+The MCP container is intentionally not connected to the existing Docker MCP
+profile. It uses the local Docker socket only so its four fixed tools can
+control this Compose project during the POC.
+

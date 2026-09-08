@@ -1,0 +1,20 @@
+FROM docker:27.5.1-cli
+
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+ARG TARGETARCH
+RUN apk add --no-cache curl python3 py3-pip \
+    && python3 -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --upgrade pip \
+    && mkdir -p /usr/local/libexec/docker/cli-plugins \
+    && if [ "${TARGETARCH}" = "arm64" ]; then compose_arch=aarch64; else compose_arch=x86_64; fi \
+    && curl -fsSL "https://github.com/docker/compose/releases/download/v2.39.4/docker-compose-linux-${compose_arch}" \
+       -o /usr/local/libexec/docker/cli-plugins/docker-compose \
+    && chmod +x /usr/local/libexec/docker/cli-plugins/docker-compose
+ENV PATH="/opt/venv/bin:$PATH"
+WORKDIR /app
+COPY pyproject.toml ./
+COPY src ./src
+COPY scripts ./scripts
+RUN pip install --no-cache-dir .
+EXPOSE 3001
+CMD ["python", "-m", "engineering_mcp.server", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "3001"]

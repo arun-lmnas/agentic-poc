@@ -1,0 +1,10 @@
+README.md
+pyproject.toml
+src/hello_mcp/__init__.py
+src/hello_mcp/server.py
+src/hello_mcp_server.egg-info/PKG-INFO
+src/hello_mcp_server.egg-info/SOURCES.txt
+src/hello_mcp_server.egg-info/dependency_links.txt
+src/hello_mcp_server.egg-info/requires.txt
+src/hello_mcp_server.egg-info/top_level.txt
+tests/test_server.py

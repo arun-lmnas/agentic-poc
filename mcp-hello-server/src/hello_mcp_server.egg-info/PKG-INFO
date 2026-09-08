@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: hello-mcp-server
+Version: 0.1.0
+Summary: A minimal MCP server with a hello tool
+Requires-Python: >=3.12
+Requires-Dist: mcp==2.1.1
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-anyio>=0.0.0; extra == "dev"
+Requires-Dist: ruff>=0.8; extra == "dev"

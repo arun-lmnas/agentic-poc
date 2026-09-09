@@ -3,9 +3,9 @@ tracker:
   kind: linear
   provider:
     api_key: $LINEAR_API_KEY
-    project_slug: $LINEAR_PROJECT_SLUG
+    # project_slug: $LINEAR_PROJECT_SLUG
+    project_slug: "e751aaf12fc6"
   active_states:
-    - Backlog
     - Todo
     - In Progress
   terminal_states:
@@ -19,6 +19,7 @@ polling:
 workspace:
   root: $SYMPHONY_WORKSPACE_ROOT
 hooks:
+  timeout_ms: 300000
   after_create: |
     set -euo pipefail
     if [ -z "${SOURCE_REPO_URL:-}" ]; then
@@ -30,33 +31,24 @@ hooks:
 codex:
   command: "$CODEX_BIN --config shell_environment_policy.inherit=all app-server"
   approval_policy: never
-  thread_sandbox: workspace-write
+  thread_sandbox: danger-full-access
   turn_sandbox_policy:
-    type: workspaceWrite
-    networkAccess: true
+    type: externalSandbox
+    networkAccess: enabled
+  turn_timeout_ms: 180000
+  stall_timeout_ms: 300000
 agent:
   max_concurrent_agents: 1
-  max_turns: 10
+  max_turns: 1
 ---
 
-You are working on a Linear issue `{{ issue.identifier }}`.
+You are executing one deterministic Symphony smoke test for Linear issue `{{ issue.identifier }}`.
+
+Work only in the supplied workspace. Follow the issue description exactly.
+Create the requested file or change, verify it with a shell command, and stop.
+Do not inspect unrelated files, make architectural changes, commit, push, or modify any other file.
 
 Issue title: {{ issue.title }}
 
-Issue status: {{ issue.state }}
-
-Issue URL: {{ issue.url }}
-
 Issue description:
-{% if issue.description %}
-{{ issue.description }}
-{% else %}
-No description provided.
-{% endif %}
-
-Instructions:
-
-1. Work only inside the provided workspace.
-2. Make the smallest correct change that satisfies the issue.
-3. Validate the result before stopping.
-4. Leave a clear handoff note in the tracker if the workflow supports it.
+{% if issue.description %}{{ issue.description }}{% else %}No description provided.{% endif %}

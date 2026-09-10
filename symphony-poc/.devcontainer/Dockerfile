@@ -1,6 +1,8 @@
 FROM node:22-trixie@sha256:2082d2bf902c8835655c6bcfee3594c00ea900498a9f6e2b96d3352536f9e8d8
 
 ARG CODEX_VERSION=0.153.0
+ARG GH_VERSION=2.100.0
+ARG TARGETARCH
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
@@ -12,6 +14,21 @@ RUN npm install --global "@openai/codex@${CODEX_VERSION}" \
     && test "$(command -v codex)" = /usr/local/bin/codex \
     && npm cache clean --force
 
+RUN case "$TARGETARCH" in \
+      amd64) gh_arch=amd64 ;; \
+      arm64) gh_arch=arm64 ;; \
+      *) echo "Unsupported GitHub CLI architecture: $TARGETARCH" >&2; exit 1 ;; \
+    esac \
+    && gh_archive="gh_${GH_VERSION}_linux_${gh_arch}.tar.gz" \
+    && gh_release_url="https://github.com/cli/cli/releases/download/v${GH_VERSION}" \
+    && curl --fail --silent --show-error --location --output "/tmp/${gh_archive}" "${gh_release_url}/${gh_archive}" \
+    && curl --fail --silent --show-error --location --output /tmp/gh_checksums.txt "${gh_release_url}/gh_${GH_VERSION}_checksums.txt" \
+    && grep " ${gh_archive}$" /tmp/gh_checksums.txt | (cd /tmp && sha256sum --check --status -) \
+    && tar --extract --gzip --file "/tmp/${gh_archive}" --directory /tmp \
+    && install "/tmp/gh_${GH_VERSION}_linux_${gh_arch}/bin/gh" /usr/local/bin/gh \
+    && gh --version \
+    && rm -rf /tmp/gh_*
+
 USER node
 
 RUN --mount=type=tmpfs,target=/tmp \
@@ -22,18 +39,11 @@ RUN --mount=type=tmpfs,target=/tmp \
 USER root
 
 # Docker initializes empty named volumes from these directories on their first
-# mount. Keep them credential-free; Codex and Git write credentials at runtime.
-RUN ln -s /home/node/.local/share/mise/installs/erlang/28.5/bin/erl /usr/local/bin/erl \
-    && ln -s /home/node/.local/share/mise/installs/erlang/28.5/bin/erlc /usr/local/bin/erlc \
-    && ln -s /home/node/.local/share/mise/installs/erlang/28.5/bin/escript /usr/local/bin/escript \
-    && ln -s /home/node/.local/share/mise/installs/erlang/28.5/bin/epmd /usr/local/bin/epmd \
-    && ln -s /home/node/.local/share/mise/installs/elixir/1.19.5-otp-28/bin/elixir /usr/local/bin/elixir \
-    && ln -s /home/node/.local/share/mise/installs/elixir/1.19.5-otp-28/bin/iex /usr/local/bin/iex \
-    && ln -s /home/node/.local/share/mise/installs/elixir/1.19.5-otp-28/bin/mix /usr/local/bin/mix \
-    && mkdir -p /home/node/.codex \
-    && mkdir -p /home/node/.config/git \
+# mount. Keep them credential-free; Codex and GitHub CLI write auth state at runtime.
+RUN mkdir -p /home/node/.codex \
+    && mkdir -p /home/node/.config/gh \
     && chown -R node:node /home/node/.codex /home/node/.config \
-    && git config --system credential.helper 'store --file=/home/node/.config/git/credentials'
+    && git config --system credential.https://github.com.helper '!gh auth git-credential'
 
 USER node
 

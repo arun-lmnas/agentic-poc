@@ -24,21 +24,8 @@ engineering workflow in an isolated devcontainer.
 Open `symphony-poc` in VS Code and choose **Dev Containers: Reopen in Container**. The folder is
 mounted at `/workspace/symphony-poc`.
 
-Inside the container, run the official Symphony setup:
-
-```bash
-cd /workspace/symphony-poc/.symphony/elixir
-mise install
-mise exec -- mix setup
-mise exec -- mix build
-```
-
-Verify the agent CLI with:
-
-```bash
-codex --version
-codex app-server --help
-```
+The Dev Container automatically configures mise, runtime links, Git identity,
+GitHub CLI Git integration, and Symphony dependencies/build.
 
 ### Outer sandbox model
 
@@ -69,16 +56,6 @@ You will need to provide values for:
 - `SYMPHONY_WORKSPACE_ROOT`
 - `.env.local` is loaded automatically by the Dev Container at runtime
 
-Authenticate the Codex CLI inside the devcontainer before starting Symphony:
-
-```bash
-codex login
-codex login status
-```
-
-This is CLI authentication within the outer worker boundary; it does not use or
-depend on the host VS Code Codex extension.
-
 ### Persistent Codex authentication
 
 The Dev Container mounts the local Docker named volume
@@ -88,9 +65,7 @@ container recreation and image rebuilds. The image creates only an empty,
 node-owned directory at that path and never contains credentials.
 
 The volume is local developer state: it is not in git, `.env.local`, or the
-Docker image. A developer runs `codex login` once after the volume is first
-created. Deleting `symphony-poc-codex-auth` deliberately removes the cached
-login and requires authentication again.
+Docker image. It remains separate from GitHub authentication.
 
 Docker reuses the stable image layers for the Node base image, Codex CLI, and
 mise unless their Dockerfile inputs change. The local
@@ -100,7 +75,7 @@ avoiding a toolchain reinstall when the disposable container is recreated.
 the executable, but it fetches dependencies only when `deps/` or `_build/` is
 absent.
 
-### GitHub Git authentication
+### GitHub CLI and Git authentication
 
 Codex authentication is only for the Codex service; it does not authenticate
 `git clone` or `git push` to GitHub. Issue workspaces are cloned from
@@ -108,25 +83,26 @@ Codex authentication is only for the Codex service; it does not authenticate
 the Symphony control-plane directory is not itself that clone and need not
 have an `origin` remote.
 
-For this POC, use a GitHub fine-grained personal access token restricted to
-the target repository with the minimum **Contents: read and write** permission.
-The Dev Container mounts the local Docker named volume
-`symphony-poc-git-credentials` at `/home/node/.config/git`. Git's system
-credential helper stores the token only in that volume's `credentials` file.
-It is not placed in the image, git, `.env.local`, or a host-wide home/SSH mount.
+GitHub CLI is installed in the image at the pinned version declared in the
+Dockerfile. The Dev Container mounts the local Docker named volume
+`symphony-poc-gh-auth` at `/home/node/.config/gh`. It is separate from the
+Codex volume and holds GitHub CLI authentication state only; no credential is
+in the image, git, `.env.local`, or a host-wide home/SSH mount.
 
-After opening the container for the first time, configure the token
-interactively (enter the token at the `password=` prompt; do not paste this
-block into a shell history with the token included):
+After rebuilding the Dev Container, the only manual setup action is GitHub
+browser/device authentication. Complete organization SSO when GitHub requires
+it:
 
-```text
-git credential approve
-protocol=https
-host=github.com
-username=<GitHub username>
-password=<fine-grained token>
-
+```bash
+gh auth login
 ```
+
+The Dev Container automatically configures Git identity, safe directories, and
+GitHub CLI credential integration. It runs `gh auth setup-git` automatically
+when prior persisted GitHub CLI authentication exists; the image-level Git
+helper makes Git usable immediately after a first `gh auth login`. You do not
+need to run `git credential approve`, `git config`, `gh auth setup-git`, repair
+runtime links, run mise setup, or build Symphony manually.
 
 Then validate from a disposable issue-style clone, not from
 `/workspace/symphony-poc`:
@@ -139,11 +115,10 @@ git -C "$validation_dir" ls-remote origin
 rm -rf "$validation_dir"
 ```
 
-The credential volume survives image rebuilds, container recreation, and
-issue-workspace deletion. Deleting `symphony-poc-git-credentials` deliberately
-removes the GitHub credential. SSH deploy keys are viable for a multi-user
-service deployment, but HTTPS plus a repository-scoped fine-grained token is
-the smaller, dedicated boundary for this local POC.
+The GitHub CLI volume survives image rebuilds, container recreation, and
+issue-workspace deletion. Deleting `symphony-poc-gh-auth` deliberately removes
+the GitHub authentication state. Issue workspaces never receive a credential
+copy; Git invokes `gh` when it needs an HTTPS credential.
 
 ## Official execution model
 

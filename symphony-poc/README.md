@@ -100,6 +100,51 @@ avoiding a toolchain reinstall when the disposable container is recreated.
 the executable, but it fetches dependencies only when `deps/` or `_build/` is
 absent.
 
+### GitHub Git authentication
+
+Codex authentication is only for the Codex service; it does not authenticate
+`git clone` or `git push` to GitHub. Issue workspaces are cloned from
+`SOURCE_REPO_URL`, so a HTTPS clone creates `origin` in that issue workspace;
+the Symphony control-plane directory is not itself that clone and need not
+have an `origin` remote.
+
+For this POC, use a GitHub fine-grained personal access token restricted to
+the target repository with the minimum **Contents: read and write** permission.
+The Dev Container mounts the local Docker named volume
+`symphony-poc-git-credentials` at `/home/node/.config/git`. Git's system
+credential helper stores the token only in that volume's `credentials` file.
+It is not placed in the image, git, `.env.local`, or a host-wide home/SSH mount.
+
+After opening the container for the first time, configure the token
+interactively (enter the token at the `password=` prompt; do not paste this
+block into a shell history with the token included):
+
+```text
+git credential approve
+protocol=https
+host=github.com
+username=<GitHub username>
+password=<fine-grained token>
+
+```
+
+Then validate from a disposable issue-style clone, not from
+`/workspace/symphony-poc`:
+
+```bash
+validation_dir="$(mktemp -d)"
+git clone --depth 1 https://github.com/arun-lmnas/agentic-poc.git "$validation_dir"
+git -C "$validation_dir" remote -v
+git -C "$validation_dir" ls-remote origin
+rm -rf "$validation_dir"
+```
+
+The credential volume survives image rebuilds, container recreation, and
+issue-workspace deletion. Deleting `symphony-poc-git-credentials` deliberately
+removes the GitHub credential. SSH deploy keys are viable for a multi-user
+service deployment, but HTTPS plus a repository-scoped fine-grained token is
+the smaller, dedicated boundary for this local POC.
+
 ## Official execution model
 
 The supported Symphony development path is:

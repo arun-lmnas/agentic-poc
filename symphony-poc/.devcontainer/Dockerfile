@@ -21,9 +21,8 @@ RUN --mount=type=tmpfs,target=/tmp \
 
 USER root
 
-# Docker initializes an empty named volume from this directory on its first
-# mount. Keep it credential-free; `codex login` writes auth.json to the volume
-# at runtime.
+# Docker initializes empty named volumes from these directories on their first
+# mount. Keep them credential-free; Codex and Git write credentials at runtime.
 RUN ln -s /home/node/.local/share/mise/installs/erlang/28.5/bin/erl /usr/local/bin/erl \
     && ln -s /home/node/.local/share/mise/installs/erlang/28.5/bin/erlc /usr/local/bin/erlc \
     && ln -s /home/node/.local/share/mise/installs/erlang/28.5/bin/escript /usr/local/bin/escript \
@@ -32,7 +31,9 @@ RUN ln -s /home/node/.local/share/mise/installs/erlang/28.5/bin/erl /usr/local/b
     && ln -s /home/node/.local/share/mise/installs/elixir/1.19.5-otp-28/bin/iex /usr/local/bin/iex \
     && ln -s /home/node/.local/share/mise/installs/elixir/1.19.5-otp-28/bin/mix /usr/local/bin/mix \
     && mkdir -p /home/node/.codex \
-    && chown node:node /home/node/.codex
+    && mkdir -p /home/node/.config/git \
+    && chown -R node:node /home/node/.codex /home/node/.config \
+    && git config --system credential.helper 'store --file=/home/node/.config/git/credentials'
 
 USER node
 

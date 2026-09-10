@@ -8,7 +8,8 @@
   "workspaceFolder": "/workspace/symphony-poc",
   "mounts": [
     "source=symphony-poc-codex-auth,target=/home/node/.codex,type=volume",
-    "source=symphony-poc-mise-data,target=/home/node/.local/share/mise,type=volume"
+    "source=symphony-poc-mise-data,target=/home/node/.local/share/mise,type=volume",
+    "source=symphony-poc-git-credentials,target=/home/node/.config/git,type=volume"
   ],
   "runArgs": [
     "--env-file",

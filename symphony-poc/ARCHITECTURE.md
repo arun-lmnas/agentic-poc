@@ -26,6 +26,10 @@ Host VS Code Codex (engineering/setup agent)
   volume at `/home/node/.codex`. It persists CLI authentication across image
   rebuilds and container recreation without placing credentials in the image,
   repository, or environment files.
+- The disposable devcontainer mounts the local `symphony-poc-git-credentials`
+  volume at `/home/node/.config/git`. It holds only the Git credential-helper
+  state for issue-workspace clone/push operations; Codex authentication is not
+  a GitHub credential.
 - A per-issue workspace is the only working copy the worker may use. Issue
   workspaces are never shared.
 - Codex app-server receives the issue and executes the reusable engineering

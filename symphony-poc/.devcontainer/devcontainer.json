@@ -1,0 +1,27 @@
+{
+  "name": "Symphony POC",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace/symphony-poc,type=bind,consistency=cached",
+  "workspaceFolder": "/workspace/symphony-poc",
+  "runArgs": [
+    "--env-file",
+    "${localWorkspaceFolder}/.env.local",
+    "--security-opt",
+    "seccomp=${localWorkspaceFolder}/.devcontainer/codex-bwrap-seccomp.json"
+  ],
+  "remoteUser": "node",
+  "postCreateCommand": "sh /workspace/symphony-poc/.devcontainer/post-create.sh",
+  "containerEnv": {
+    "MISE_TRUSTED_CONFIG_PATHS": "/workspace/symphony-poc/.symphony/elixir"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "elixir-lsp.elixir-ls"
+      ]
+    }
+  }
+}

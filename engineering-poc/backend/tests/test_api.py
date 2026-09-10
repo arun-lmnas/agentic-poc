@@ -10,6 +10,18 @@ client = TestClient(app)
 def setup_function() -> None:
     tasks.clear()
 
+
+def test_health_info_returns_application_information() -> None:
+    response = client.get("/api/health-info")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "ok",
+        "service": "engineering-poc-backend",
+        "version": "1.0.0",
+    }
+
+
 def test_create_task_accepts_trimmed_three_character_title() -> None:
     response = client.post("/api/tasks", json={"title": "  abc  "})
 

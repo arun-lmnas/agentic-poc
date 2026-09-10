@@ -14,6 +14,15 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/api/health-info")
+def health_info() -> dict[str, str]:
+    return {
+        "status": "ok",
+        "service": "engineering-poc-backend",
+        "version": "1.0.0",
+    }
+
+
 @app.get("/api/tasks")
 def list_tasks() -> dict[str, list[str]]:
     return {"tasks": tasks}

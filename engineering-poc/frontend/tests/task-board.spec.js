@@ -27,3 +27,13 @@ test("accepts boundary-length tasks and rejects titles outside the range", async
   await page.getByRole("button", { name: "Add task" }).click();
   await expect(page.getByRole("alert")).toHaveText("Task title must be between 3 and 6 characters");
 });
+
+test("submits a health-check job and shows its completed result", async ({ page }) => {
+  await page.goto("/");
+
+  await page.getByRole("button", { name: "Run health check" }).click();
+  await expect(page.getByText("Job status: queued")).toBeVisible();
+  await expect(page.getByText("Job status: completed")).toBeVisible();
+  await expect(page.getByLabel("Job result")).toContainText('"service": "engineering-poc-backend"');
+  await expect(page.getByLabel("Job result")).toContainText('"version": "1.0.0"');
+});

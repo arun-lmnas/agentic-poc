@@ -16,5 +16,8 @@ ul { padding: 0; list-style: none; font: 18px/1.5 sans-serif; }
 li { padding: 12px 0; border-bottom: 1px solid #b5c7bd; }
 .empty, .error { font-family: sans-serif; }
 .error { color: #a53225; font-weight: 700; }
+.job-panel { margin-top: 42px; padding-top: 28px; border-top: 1px solid #b5c7bd; }
+.job-panel h2 { margin-top: 0; }
+.job-status { font-family: sans-serif; }
+pre { overflow-x: auto; padding: 14px; background: #e8f0eb; font: 13px/1.4 monospace; }
 @media (max-width: 520px) { .form-row { flex-direction: column; } button { width: 100%; } .card { box-shadow: 7px 7px 0 #18332f; } }
-

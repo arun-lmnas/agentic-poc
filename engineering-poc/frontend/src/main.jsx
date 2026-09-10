@@ -3,15 +3,33 @@ import { createRoot } from "react-dom/client";
 import "./style.css";
 
 const API = "/api/tasks";
+const JOBS_API = "/api/jobs";
 
 function App() {
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState("");
   const [error, setError] = useState("");
+  const [job, setJob] = useState(null);
+  const [jobError, setJobError] = useState("");
 
   useEffect(() => {
     fetch(API).then((response) => response.json()).then((data) => setTasks(data.tasks));
   }, []);
+
+  useEffect(() => {
+    if (!job || !["queued", "running"].includes(job.status)) return undefined;
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(`${JOBS_API}/${job.job_id}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Could not retrieve job status");
+        setJob(data);
+      } catch (requestError) {
+        setJobError(requestError.message);
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [job]);
 
   async function addTask(event) {
     event.preventDefault();
@@ -30,6 +48,22 @@ function App() {
     setTitle("");
   }
 
+  async function submitHealthCheck() {
+    setJobError("");
+    try {
+      const response = await fetch(JOBS_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ job_type: "health-check" }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Could not submit job");
+      setJob({ ...data, result: null, error: null });
+    } catch (requestError) {
+      setJobError(requestError.message);
+    }
+  }
+
   return (
     <main>
       <section className="card">
@@ -46,10 +80,18 @@ function App() {
         {error && <p role="alert" className="error">{error}</p>}
         <h2>Tasks</h2>
         {tasks.length ? <ul>{tasks.map((task, index) => <li key={`${task}-${index}`}>{task}</li>)}</ul> : <p className="empty">No tasks yet.</p>}
+        <section className="job-panel" aria-labelledby="job-heading">
+          <h2 id="job-heading">Backend job</h2>
+          <p className="intro">Run a health check asynchronously.</p>
+          <button type="button" onClick={submitHealthCheck}>Run health check</button>
+          {job && <p className="job-status">Job status: <strong>{job.status}</strong></p>}
+          {job?.status === "completed" && <pre aria-label="Job result">{JSON.stringify(job.result, null, 2)}</pre>}
+          {job?.status === "failed" && <p role="alert" className="error">{job.error}</p>}
+          {jobError && <p role="alert" className="error">{jobError}</p>}
+        </section>
       </section>
     </main>
   );
 }
 
 createRoot(document.getElementById("root")).render(<StrictMode><App /></StrictMode>);
-

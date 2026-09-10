@@ -8,18 +8,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     MISE_DATA_DIR=/home/node/.local/share/mise \
     PATH=/home/node/.local/bin:/home/node/.local/share/mise/shims:${PATH}
 
-RUN apt-get update \
-    && apt-get install --no-install-recommends --yes bubblewrap \
-    && rm -rf /var/lib/apt/lists/* \
-    && npm install --global "@openai/codex@${CODEX_VERSION}" \
+RUN npm install --global "@openai/codex@${CODEX_VERSION}" \
     && test "$(command -v codex)" = /usr/local/bin/codex \
-    && ln -s /home/node/.local/share/mise/installs/erlang/28.5/bin/erl /usr/local/bin/erl \
-    && ln -s /home/node/.local/share/mise/installs/erlang/28.5/bin/erlc /usr/local/bin/erlc \
-    && ln -s /home/node/.local/share/mise/installs/erlang/28.5/bin/escript /usr/local/bin/escript \
-    && ln -s /home/node/.local/share/mise/installs/erlang/28.5/bin/epmd /usr/local/bin/epmd \
-    && ln -s /home/node/.local/share/mise/installs/elixir/1.19.5-otp-28/bin/elixir /usr/local/bin/elixir \
-    && ln -s /home/node/.local/share/mise/installs/elixir/1.19.5-otp-28/bin/iex /usr/local/bin/iex \
-    && ln -s /home/node/.local/share/mise/installs/elixir/1.19.5-otp-28/bin/mix /usr/local/bin/mix \
     && npm cache clean --force
 
 USER node
@@ -28,5 +18,22 @@ RUN --mount=type=tmpfs,target=/tmp \
     curl --fail --silent --show-error https://mise.run | sh \
     && mise --version \
     && codex --version
+
+USER root
+
+# Docker initializes an empty named volume from this directory on its first
+# mount. Keep it credential-free; `codex login` writes auth.json to the volume
+# at runtime.
+RUN ln -s /home/node/.local/share/mise/installs/erlang/28.5/bin/erl /usr/local/bin/erl \
+    && ln -s /home/node/.local/share/mise/installs/erlang/28.5/bin/erlc /usr/local/bin/erlc \
+    && ln -s /home/node/.local/share/mise/installs/erlang/28.5/bin/escript /usr/local/bin/escript \
+    && ln -s /home/node/.local/share/mise/installs/erlang/28.5/bin/epmd /usr/local/bin/epmd \
+    && ln -s /home/node/.local/share/mise/installs/elixir/1.19.5-otp-28/bin/elixir /usr/local/bin/elixir \
+    && ln -s /home/node/.local/share/mise/installs/elixir/1.19.5-otp-28/bin/iex /usr/local/bin/iex \
+    && ln -s /home/node/.local/share/mise/installs/elixir/1.19.5-otp-28/bin/mix /usr/local/bin/mix \
+    && mkdir -p /home/node/.codex \
+    && chown node:node /home/node/.codex
+
+USER node
 
 WORKDIR /workspace/symphony-poc

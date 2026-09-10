@@ -1,44 +1,47 @@
 # Symphony POC Architecture
 
-This POC proves the Linear -> Symphony -> isolated workspace -> Codex loop. It
-does not implement cross-issue dependency orchestration.
-
-## Current Boundary
+POC-1b turns the proven Linear-to-Symphony loop into a reusable engineering
+workflow. It does not implement cross-issue dependency orchestration.
 
 ```text
-Linear issue
-  -> Symphony scheduler and tracker adapter
-  -> one workspace per issue under workspaces/
-  -> Codex app-server in that workspace
-  -> Git changes and validation
+Host VS Code Codex (engineering/setup agent)
+  -> Git repository
+  -> Symphony devcontainer (outer isolation boundary)
+  -> Symphony (orchestration/control plane)
+  -> per-issue workspace (isolated working copy)
+  -> Codex app-server (autonomous engineering worker)
+  -> implementation, tests, verification, and Linear Done
 ```
 
-The Symphony Dev Container is the outer execution boundary. Codex uses the
-`externalSandbox` turn policy, so it does not create a nested Bubblewrap
-sandbox. The container must not contain unrelated secrets or mounts.
+## Boundaries and Responsibilities
 
-## POC-1 Proven Path
+- Host Codex configures and validates the repository. It does not run
+  Symphony or perform the assigned Linear engineering task.
+- Symphony polls Linear, creates and cleans up one workspace per issue, and
+  invokes the worker.
+- The Symphony devcontainer is the outer isolation boundary for automated
+  workers. It has no Docker socket, privileged mode, or added capabilities.
+- The disposable devcontainer mounts the local `symphony-poc-codex-auth` named
+  volume at `/home/node/.codex`. It persists CLI authentication across image
+  rebuilds and container recreation without placing credentials in the image,
+  repository, or environment files.
+- A per-issue workspace is the only working copy the worker may use. Issue
+  workspaces are never shared.
+- Codex app-server receives the issue and executes the reusable engineering
+  workflow: inspect, implement, test, repair, verify, then mark the issue Done.
+- MCP is a future controlled-capability layer; it is not a shared workspace or
+  an artifact promotion mechanism in POC-1b.
 
-The disposable `LMN-6` smoke run validated this sequence in container
-`f0930478fc0543d35fd9afc136206abcc1ed315daad93d764f39ae4b0f102cd7`:
+Codex uses `thread_sandbox: danger-full-access` together with the explicit
+`externalSandbox` turn policy. That policy delegates containment to the
+devcontainer, so no nested Bubblewrap sandbox or custom Docker seccomp profile
+is required. Network access is enabled for the worker's normal engineering
+dependencies; the container boundary remains responsible for host isolation.
 
-```text
-Linear LMN-6 (Todo)
-  -> one Symphony worker
-  -> /workspace/symphony-poc/workspaces/LMN-6
-  -> shallow clone of the configured repository
-  -> Codex 0.153.0 app-server
-  -> one completed turn and shell/file tool execution
-  -> symphony-smoke.txt validated
-  -> LMN-6 moved to Done
-```
-
-The smoke workflow uses `max_concurrent_agents: 1`, `max_turns: 1`, a
-300-second workspace-hook timeout, and bounded Codex turn/stall timeouts. The
-issue must reach a configured terminal state after the turn; otherwise
-Symphony correctly schedules a continuation for an active issue, even when
-`max_turns` is one. Once Linear reports a terminal state, Symphony removes the
-associated issue workspace during normal cleanup.
+The workflow permits up to ten bounded turns, a 15-minute turn timeout, and a
+five-minute stall timeout. A worker must validate the requested change before
+moving the Linear issue to Done; otherwise it reports the blocker and leaves
+the issue active.
 
 The Codex adapter contains low-noise debug tracing for JSON-RPC lifecycle
 metadata only: methods, request IDs, workspace/policy metadata, item types,

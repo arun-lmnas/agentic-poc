@@ -6,11 +6,13 @@
   },
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace/symphony-poc,type=bind,consistency=cached",
   "workspaceFolder": "/workspace/symphony-poc",
+  "mounts": [
+    "source=symphony-poc-codex-auth,target=/home/node/.codex,type=volume",
+    "source=symphony-poc-mise-data,target=/home/node/.local/share/mise,type=volume"
+  ],
   "runArgs": [
     "--env-file",
-    "${localWorkspaceFolder}/.env.local",
-    "--security-opt",
-    "seccomp=${localWorkspaceFolder}/.devcontainer/codex-bwrap-seccomp.json"
+    "${localWorkspaceFolder}/.env.local"
   ],
   "remoteUser": "node",
   "postCreateCommand": "sh /workspace/symphony-poc/.devcontainer/post-create.sh",

@@ -1,13 +1,17 @@
 # Symphony POC
 
-This directory holds the minimal local Symphony setup for the controlled POC.
+This directory holds the local Symphony setup for POC-1b: a reusable Linear
+engineering workflow in an isolated devcontainer.
 
 ## What this POC uses
 
 - Official Symphony execution model from `openai/symphony`
 - Linear as the issue tracker
-- Codex as the coding agent via `codex app-server`
+- Host VS Code Codex as the engineering/setup agent
+- Symphony as the orchestration/control plane
+- Codex app-server as the autonomous engineering worker
 - Per-issue isolated workspaces under `symphony-poc/workspaces`
+- MCP as a future controlled-capability layer (not POC-2 orchestration)
 
 ## Files
 
@@ -36,30 +40,23 @@ codex --version
 codex app-server --help
 ```
 
-### Codex workspace-write sandbox
+### Outer sandbox model
 
-Codex's Linux `workspace-write` sandbox uses Bubblewrap to create nested user, mount, and (when
-required) network namespaces. Docker Desktop's default Docker seccomp profile blocks those namespace
-creation calls for this unprivileged Dev Container, so the image installs Debian's `bubblewrap` package
-and the Dev Container applies `.devcontainer/codex-bwrap-seccomp.json` automatically via
-`--security-opt seccomp=${localWorkspaceFolder}/.devcontainer/codex-bwrap-seccomp.json`.
+The devcontainer is the worker's outer isolation boundary. `WORKFLOW.md`
+configures Codex with an `externalSandbox` turn policy, so Codex does not need
+to create a nested Bubblewrap sandbox. The image does not install Bubblewrap
+and the devcontainer does not override Docker's default seccomp profile.
 
-That profile is Docker/Moby v28.5.2's pinned default profile (upstream SHA-256
-`01536f1d1df938ae611eba20d6349e0de7a99b6ecdee1549427a0b01b8301e28`) with only these additional
-non-`CAP_SYS_ADMIN` permissions: `clone` for `CLONE_NEWUSER | CLONE_NEWNS`, `clone` for
-`CLONE_NEWUSER | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWIPC | CLONE_NEWNET`, and `unshare` for
-`CLONE_NEWUSER`. It does not enable
-privileged mode, Docker socket access, extra capabilities, or `seccomp=unconfined`.
+It does not use privileged mode, added capabilities, Docker-in-Docker, or a
+Docker socket. The worker must not depend on the host VS Code Codex extension.
 
-After **Dev Containers: Rebuild Container**, verify the runtime configuration with:
+After **Dev Containers: Rebuild Container**, verify the runtime with:
 
 ```bash
-command -v bwrap
-bwrap --version
-unshare -Ur true; echo $?
-bwrap --unshare-user --ro-bind / / true; echo $?
 codex --version
-codex app-server generate-json-schema --out /tmp/codex-schema.json
+codex app-server --help
+cd /workspace/symphony-poc/.symphony/elixir
+mise exec -- mix build
 ```
 
 ## Required inputs
@@ -72,6 +69,37 @@ You will need to provide values for:
 - `SYMPHONY_WORKSPACE_ROOT`
 - `.env.local` is loaded automatically by the Dev Container at runtime
 
+Authenticate the Codex CLI inside the devcontainer before starting Symphony:
+
+```bash
+codex login
+codex login status
+```
+
+This is CLI authentication within the outer worker boundary; it does not use or
+depend on the host VS Code Codex extension.
+
+### Persistent Codex authentication
+
+The Dev Container mounts the local Docker named volume
+`symphony-poc-codex-auth` at `/home/node/.codex`. Codex stores its cached CLI
+credentials at `/home/node/.codex/auth.json`; the volume retains them across
+container recreation and image rebuilds. The image creates only an empty,
+node-owned directory at that path and never contains credentials.
+
+The volume is local developer state: it is not in git, `.env.local`, or the
+Docker image. A developer runs `codex login` once after the volume is first
+created. Deleting `symphony-poc-codex-auth` deliberately removes the cached
+login and requires authentication again.
+
+Docker reuses the stable image layers for the Node base image, Codex CLI, and
+mise unless their Dockerfile inputs change. The local
+`symphony-poc-mise-data` named volume retains the Erlang and Elixir toolchains,
+avoiding a toolchain reinstall when the disposable container is recreated.
+`post-create.sh` still validates the existing Symphony dependencies and builds
+the executable, but it fetches dependencies only when `deps/` or `_build/` is
+absent.
+
 ## Official execution model
 
 The supported Symphony development path is:
@@ -80,7 +108,12 @@ The supported Symphony development path is:
 2. Symphony polls Linear for issues in the configured project.
 3. Symphony creates or reuses an isolated workspace per issue.
 4. Symphony launches `codex app-server` inside that workspace.
-5. Codex works the issue until the workflow-defined handoff state or completion.
+5. Codex understands the issue, implements the smallest correct change, runs
+   relevant tests, verifies the final state, and only then marks the issue Done.
+
+POC-2 remains a documented extension seam only. It does not yet provide a
+dependency scheduler, feature graph, artifact registry or promotion, automatic
+downstream activation, cross-issue workspace sharing, or MCP orchestration.
 
 ## Local start shape
 

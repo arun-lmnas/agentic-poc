@@ -109,7 +109,16 @@ The supported Symphony development path is:
 3. Symphony creates or reuses an isolated workspace per issue.
 4. Symphony launches `codex app-server` inside that workspace.
 5. Codex understands the issue, implements the smallest correct change, runs
-   relevant tests, verifies the final state, and only then marks the issue Done.
+   relevant tests, verifies the final state, commits and pushes
+   `symphony/<issue identifier>`, records concise evidence in Linear, and only
+   then marks the issue Done.
+
+Workspaces are deliberately ephemeral. The pushed issue branch and commit are
+the durable engineering output; the Linear `Symphony Engineering Result`
+comment records the branch, commit, change summary, validation, acceptance
+verification, and limitations. If committing, pushing, or recording evidence
+fails, the issue remains active and Symphony may clean up only after it reaches
+a terminal state through some other deliberate action.
 
 POC-2 remains a documented extension seam only. It does not yet provide a
 dependency scheduler, feature graph, artifact registry or promotion, automatic

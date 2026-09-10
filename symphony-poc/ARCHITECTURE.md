@@ -10,7 +10,8 @@ Host VS Code Codex (engineering/setup agent)
   -> Symphony (orchestration/control plane)
   -> per-issue workspace (isolated working copy)
   -> Codex app-server (autonomous engineering worker)
-  -> implementation, tests, verification, and Linear Done
+  -> implementation, tests, verification, pushed issue branch/commit,
+     Linear engineering evidence, and finally Linear Done
 ```
 
 ## Boundaries and Responsibilities
@@ -28,7 +29,8 @@ Host VS Code Codex (engineering/setup agent)
 - A per-issue workspace is the only working copy the worker may use. Issue
   workspaces are never shared.
 - Codex app-server receives the issue and executes the reusable engineering
-  workflow: inspect, implement, test, repair, verify, then mark the issue Done.
+  workflow: create an issue branch, inspect, implement, test, repair, verify,
+  commit and push, record Linear evidence, then mark the issue Done.
 - MCP is a future controlled-capability layer; it is not a shared workspace or
   an artifact promotion mechanism in POC-1b.
 
@@ -39,9 +41,11 @@ is required. Network access is enabled for the worker's normal engineering
 dependencies; the container boundary remains responsible for host isolation.
 
 The workflow permits up to ten bounded turns, a 15-minute turn timeout, and a
-five-minute stall timeout. A worker must validate the requested change before
-moving the Linear issue to Done; otherwise it reports the blocker and leaves
-the issue active.
+five-minute stall timeout. Issue workspaces are ephemeral, but the
+`symphony/<issue identifier>` branch and commit are durable. A worker must
+validate the requested change, push that branch, and record a concise Linear
+engineering-evidence comment before moving the issue to Done; otherwise it
+reports the blocker and leaves the issue active.
 
 The Codex adapter contains low-noise debug tracing for JSON-RPC lifecycle
 metadata only: methods, request IDs, workspace/policy metadata, item types,
